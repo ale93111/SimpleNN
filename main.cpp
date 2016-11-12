@@ -2,7 +2,8 @@
 #include <math.h>
 #include <vector>
 #include <random>
-#include <functional>
+#include <algorithm>    // std::sort
+#include <fstream>
 
 //random generator
 std::random_device rd;
@@ -10,11 +11,11 @@ std::mt19937 generator(rd());
 std::uniform_real_distribution<double> uniform_distr(-1, 1);
 
 
-int 	population 		= 50;
-double	elitism 		= 0.2;
-double 	randomBehaviour = 0.2;
-double 	mutationRate 	= 0.1;
-double 	mutationRange 	= 0.5;
+#define population 		 50
+#define	elitism 		 0.2
+#define randomBehaviour  0.2
+#define mutationRate 	 0.1
+#define mutationRange 	 0.2
 
 double Sigmoid(double in)
 {
@@ -131,6 +132,19 @@ struct Network
 		return output;
 	}
 	
+	void Randomize()
+	{
+		for(auto &l : layers)
+		{
+			//skip input layer that has no weights
+			if(l.index == 0) continue;
+
+			for(auto &n : l.neurons)
+				for(auto &w : n.weights)
+					w = uniform_distr(generator);
+		}
+	}
+
 	void print()
 	{
 		std::cout << "hello world, i am a neural network and my layers are = " << std::endl;
@@ -164,15 +178,21 @@ struct Genome
 	Network network;
 	double score;
 	
+	//to sort a vector of genomes
+	bool operator < (const Genome& g) const
+	{
+		return (score < g.score);
+	}
+
 	Genome(){}
 	Genome(Network n, double s) : network(n), score(s) {}
 };
 
 struct Generation
 {
-	std::vector<Genome> networks;
+	std::vector<Genome> genomes;
 	
-	void addGenome(){} //TODO add genome and sort score
+	//void addGenome(){} //TODO add genome and sort score
 	
 	Genome breed(Genome g1, Genome g2)
 	{
@@ -196,80 +216,121 @@ struct Generation
 		
 		return child;
 	} 
+
+	void nextGeneration()
+	{
+		std::vector<Genome> nextG;
+
+		for (int i=0; i < floor(elitism*population); i++)
+			nextG.push_back(genomes[i]);
+		
+		for (int i=0; i < floor(randomBehaviour*population); i++)
+		{
+			Genome g = genomes[0];
+			g.network.Randomize();
+
+			nextG.push_back(g);
+		}
+
+		int max = 0;
+		while(nextG.size() < genomes.size())
+		{
+			for(int i=0; i<max; i++)
+				nextG.push_back(breed(genomes[i],genomes[max]));
+			
+			max++;
+			if(max >= genomes.size()) max = 0;
+		}
+
+		//reset scores
+		for(auto &genome : nextG)
+		{
+			genome.score = 0;
+		}
+
+		genomes = nextG;
+	}
 	
+	void Sort()
+	{
+		std::sort(genomes.begin(), genomes.end());
+		std::reverse(genomes.begin(),genomes.end());
+	}
+
+	double avgScore()
+	{
+		double avg = 0;
+		for(auto &genome : genomes)
+			avg += genome.score;
+		return avg/population;
+	}
+
 	Generation(){}
+	Generation(int nInputs, std::vector<int> nHiddens, int nOutputs)
+	{
+		for (int i=0; i < population; i++)
+		{
+			Network n(nInputs,nHiddens,nOutputs);
+			Genome g(n,0);
+			genomes.push_back(g);
+		}
+	}
 };
+
 
 int main()
 {
-	Network n1(2,{2},2);
-	Network n2(2,{2},2);
-	
-	//n1.print();
-	//n2.print();
-	
-	Genome g1(n1,0), g2(n2,0);
-		
-	g1.network.print();
-	g2.network.print();
-	
-	Generation X;
-	
-	auto xman = X.breed(g1,g2);
-	
-	xman.network.print();
-	
-	/*
-	Neuron neuron;
-	neuron.Populate(2);
-	
-	for(auto weight : neuron.weights)
-		std::cout << "hello world, i am a neuron and my weights are = " << weight << std::endl;
-	
-	Neuron anotherNeuron;
-	anotherNeuron.Populate(2);
-	
-	for(auto weight : anotherNeuron.weights)
-		std::cout << "hello world, i am a another neuron and my weight is = " << weight << std::endl;
-	
-	std::cout << std::endl;
-	
-	Layer layer(0,5,2);
-	//layer.Populate(5,2);
-	
-	std::cout << "hello world, i am a layer " << layer.index << " and my neurons are = " << std::endl;
-	
+	//XOR TEST
+	Generation X(2,{3},1);
 
-	int j = 0;
-	for(auto n : layer.neurons)
+	std::vector<std::vector<double>> dataset = {{1,0},{1,1},{0,1},{0,0}};
+
+	std::vector<double> truth = {1,0,1,0};
+	
+	int count = 0;
+	std::vector<double> avgscore;
+
+	while(1)
 	{
-		std::cout << "hello world, i am neuron number " << j << " and my weights are = " << std::endl;
-		j++;
-		for(auto w : n.weights)
-			std::cout << w << std::endl;
+		count++;
+		for(auto &genome : X.genomes)
+		{
+			std::vector<double> output;
+			for(auto input : dataset)
+			{
+				auto c = genome.network.FeedForward(input);
+				output.push_back(c[0]>0.5);
+			}
+			
+			for(int i=0; i<4; i++)
+				if(output[i] == truth[i]) genome.score++;
+		}
+
+		X.Sort();
+
+		if(!(count%100))
+		{
+			avgscore.push_back(X.avgScore());
+		}
+
+		if(X.genomes[0].score == 4) break;
+
+		X.nextGeneration();
 	}
-	j=0;
+
+	std::cout << "number of generations = " << count << std::endl;
+
+	/*
+	std::ofstream output;	
+	output.open("scores.txt");
 	
-	std::cout << std::endl;
+	for(int i=0; i<avgscore.size(); i++)
+	{
+		output << i << "\t" << avgscore[i] << std::endl; 	
+	}
 	
-	std::vector<int> nHiddens = {3};
-	Network network(3,nHiddens,3);
-	
-	std::cout << "hello world, i am a neural network and my layers are = " << std::endl;
-	
-	
-	
-	
-	std::cout << std::endl;
-	
-	std::vector<double> input = {1,1,1};
-	std::cout << "here is my list of inputs = " << std::endl;
-	for(auto in : input) std::cout << in << std::endl;
-	
-	auto output = network.FeedForward(input);
-	
-	std::cout << "and here is my result = " << std::endl;
-	for(auto out : output) std::cout << out << std::endl;
+	output.close();
 	*/
+
 	return 0;
 }
