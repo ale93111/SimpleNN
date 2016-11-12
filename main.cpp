@@ -9,6 +9,13 @@ std::random_device rd;
 std::mt19937 generator(rd());
 std::uniform_real_distribution<double> uniform_distr(-1, 1);
 
+
+int 	population 		= 50;
+double	elitism 		= 0.2;
+double 	randomBehaviour = 0.2;
+double 	mutationRate 	= 0.1;
+double 	mutationRange 	= 0.5;
+
 double Sigmoid(double in)
 {
 	return  1.0/(1.0 + exp(-in));	
@@ -124,6 +131,27 @@ struct Network
 		return output;
 	}
 	
+	void print()
+	{
+		std::cout << "hello world, i am a neural network and my layers are = " << std::endl;
+		for(auto l : layers)
+		{
+			//skip input layer that has no weights
+			if(l.index == 0) continue;
+			
+			std::cout << "hello world, i am layer number " << l.index << " and my neurons are = " << std::endl;
+			int j=0;
+			for(auto n : l.neurons)
+			{
+				std::cout << "hello world, i am neuron number " << j << " and my weights are = " << std::endl;
+				j++;
+				for(auto w : n.weights)
+					std::cout << w << std::endl;
+			}
+		}
+	}
+	
+	
 	Network(){}
 	Network(int nInputs, std::vector<int> nHiddens, int nOutputs)
 	{
@@ -131,8 +159,67 @@ struct Network
 	}
 };
 
+struct Genome
+{
+	Network network;
+	double score;
+	
+	Genome(){}
+	Genome(Network n, double s) : network(n), score(s) {}
+};
+
+struct Generation
+{
+	std::vector<Genome> networks;
+	
+	void addGenome(){} //TODO add genome and sort score
+	
+	Genome breed(Genome g1, Genome g2)
+	{
+		Genome child = g1;
+		
+		for(int i=0; i<g2.network.layers.size(); i++)
+			for(int j=0; j<g2.network.layers[i].neurons.size(); j++)
+				for(int k=0; k<g2.network.layers[i].neurons[j].weights.size(); k++)
+				{	
+					double r = uniform_distr(generator);
+					//std::cout << r << std::endl;
+					
+					if(r < 0.5)
+						child.network.layers[i].neurons[j].weights[k] = g2.network.layers[i].neurons[j].weights[k];
+					
+					r = uniform_distr(generator);
+					if(r < mutationRate)
+						child.network.layers[i].neurons[j].weights[k] = uniform_distr(generator)*mutationRange*2.0 - mutationRange;
+					
+				}
+		
+		return child;
+	} 
+	
+	Generation(){}
+};
+
 int main()
 {
+	Network n1(2,{2},2);
+	Network n2(2,{2},2);
+	
+	//n1.print();
+	//n2.print();
+	
+	Genome g1(n1,0), g2(n2,0);
+		
+	g1.network.print();
+	g2.network.print();
+	
+	Generation X;
+	
+	auto xman = X.breed(g1,g2);
+	
+	xman.network.print();
+	
+	/*
 	Neuron neuron;
 	neuron.Populate(2);
 	
@@ -171,19 +258,6 @@ int main()
 	std::cout << "hello world, i am a neural network and my layers are = " << std::endl;
 	
 	
-	for(auto l : network.layers)
-	{
-		std::cout << "hello world, i am layer number " << l.index << " and my neurons are = " << std::endl;
-		
-		for(auto n : l.neurons)
-		{
-			std::cout << "hello world, i am neuron number " << j << " and my weights are = " << std::endl;
-			j++;
-			for(auto w : n.weights)
-				std::cout << w << std::endl;
-		}
-	}
-	j=0;
 	
 	
 	std::cout << std::endl;
@@ -196,6 +270,6 @@ int main()
 	
 	std::cout << "and here is my result = " << std::endl;
 	for(auto out : output) std::cout << out << std::endl;
-		
+	*/
 	return 0;
 }
