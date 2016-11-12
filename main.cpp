@@ -1,5 +1,5 @@
 #include <iostream>
-//#include <math.h>
+#include <math.h>
 #include <vector>
 #include <random>
 #include <functional>
@@ -9,9 +9,15 @@ std::random_device rd;
 std::mt19937 generator(rd());
 std::uniform_real_distribution<double> uniform_distr(-1, 1);
 
+double Sigmoid(double in)
+{
+	return  1.0/(1.0 + exp(-in));	
+}
+
 struct Neuron
 {
 	std::vector<double> weights;
+	double value;
 	
 	void Populate(int nInputs)
 	{
@@ -85,6 +91,39 @@ struct Network
 		layers.push_back(lastLayer);
 	}
 	
+	std::vector<double> FeedForward(std::vector<double> Inputs)
+	{
+		for(int i=0; i<Inputs.size(); i++)
+			layers[0].neurons[i].value = Inputs[i];
+			
+		Layer previousLayer = layers[0];
+		
+		for(int i=1; i<layers.size(); i++)
+		{
+			//for(auto currentNeuron : layers[i].neurons)
+			for(int j=0; j<layers[i].neurons.size(); j++)
+			{
+				double sum = 0;
+				//for(auto previousNeuron : previousLayer.neurons)
+				for(int k=0; k<previousLayer.neurons.size(); k++)
+				{
+					sum += previousLayer.neurons[k].value*layers[i].neurons[j].weights[k];
+				}
+				layers[i].neurons[j].value = Sigmoid(sum);
+			}
+			
+			previousLayer = layers[i];
+		}
+		
+		std::vector<double> output;
+		
+		Layer lastLayer = layers.back();
+		for(auto neuron : lastLayer.neurons)
+			output.push_back(neuron.value);
+			
+		return output;
+	}
+	
 	Network(){}
 	Network(int nInputs, std::vector<int> nHiddens, int nOutputs)
 	{
@@ -111,7 +150,7 @@ int main()
 	Layer layer(0,5,2);
 	//layer.Populate(5,2);
 	
-	std::cout << "hello world, i am a layer and my neurons are = " << std::endl;
+	std::cout << "hello world, i am a layer " << layer.index << " and my neurons are = " << std::endl;
 	
 
 	int j = 0;
@@ -146,5 +185,17 @@ int main()
 	}
 	j=0;
 	
+	
+	std::cout << std::endl;
+	
+	std::vector<double> input = {1,1,1};
+	std::cout << "here is my list of inputs = " << std::endl;
+	for(auto in : input) std::cout << in << std::endl;
+	
+	auto output = network.FeedForward(input);
+	
+	std::cout << "and here is my result = " << std::endl;
+	for(auto out : output) std::cout << out << std::endl;
+		
 	return 0;
 }
