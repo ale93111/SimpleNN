@@ -11,7 +11,7 @@ std::mt19937 generator(rd());
 std::uniform_real_distribution<double> uniform_distr(-1, 1);
 
 
-#define population 		 50
+#define population 		 100
 #define	elitism 		 0.2
 #define randomBehaviour  0.2
 #define mutationRate 	 0.1
@@ -281,7 +281,7 @@ struct Generation
 int main()
 {
 	//XOR TEST
-	Generation X(2,{3},1);
+	Generation X(2,{4},1);
 
 	std::vector<std::vector<double>> dataset = {{1,0},{1,1},{0,1},{0,0}};
 
@@ -308,19 +308,39 @@ int main()
 
 		X.Sort();
 
-		if(!(count%100))
-		{
-			avgscore.push_back(X.avgScore());
-		}
+		//if(!(count%100))
+		//	avgscore.push_back(X.avgScore());
+		
 
 		if(X.genomes[0].score == 4) break;
 
 		X.nextGeneration();
 	}
 
+	std::cout << "XOR solved!!" << std::endl;
 	std::cout << "number of generations = " << count << std::endl;
 
+	Genome champ = X.genomes[0];
+	//revaluate champ
+	std::vector<double> output;
+	for(auto input : dataset)
+	{
+		auto c = champ.network.FeedForward(input);
+		output.push_back(c[0]);
+	}
+
+	for(int i=0; i<output.size(); i++)
+	{
+		std::cout<< "the output of {" << dataset[i][0] << "," << dataset[i][1] << "} is " << output[i] << std::endl;		
+	}
+
 	/*
+	std::cout << std::endl;
+	for(auto &genome : X.genomes)
+		std::cout << genome.score;
+
+	std::cout << std::endl;
+	
 	std::ofstream output;	
 	output.open("scores.txt");
 	
