@@ -177,7 +177,55 @@ struct Genome
 {
 	Network network;
 	double score;
-	
+	void ReadfromFile(const char* filename)
+	{
+		std::vector<double> weights;
+
+		std::ifstream in(filename); 
+
+		double number; 
+		
+	    while (in >> number) { 
+			weights.push_back(number);
+		}
+
+		in.close();
+
+		int i = 0;
+		for(auto &l : network.layers)
+		{
+			//skip input layer that has no weights
+			if(l.index == 0) continue;
+			
+			for(auto &n : l.neurons)
+			{
+				for(auto &w : n.weights)
+					w = weights[i++];
+			}
+		}
+
+
+	}
+
+	void SavetoFile(const char* filename)
+	{
+		std::ofstream output;	
+		output.open(filename);
+
+		for(auto l : network.layers)
+		{
+			//skip input layer that has no weights
+			if(l.index == 0) continue;
+			
+			for(auto n : l.neurons)
+			{
+				for(auto w : n.weights)
+					output << w << std::endl;
+			}
+		}
+		output.close();
+	}
+
 	//to sort a vector of genomes
 	bool operator < (const Genome& g) const
 	{
@@ -281,7 +329,7 @@ struct Generation
 int main()
 {
 	//XOR TEST
-	Generation X(2,{4},1);
+	Generation X(2,{3},1);
 
 	std::vector<std::vector<double>> dataset = {{1,0},{1,1},{0,1},{0,0}};
 
@@ -333,6 +381,16 @@ int main()
 	{
 		std::cout<< "the output of {" << dataset[i][0] << "," << dataset[i][1] << "} is " << output[i] << std::endl;		
 	}
+
+	champ.SavetoFile("champ.nn");
+	champ.network.print();
+
+	Network t(2,{3},1);
+	Genome test(t,0);
+
+	test.ReadfromFile("champ.nn");
+	test.network.print();
+
 
 	/*
 	std::cout << std::endl;
