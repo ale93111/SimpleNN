@@ -179,19 +179,8 @@ struct Genome
 	double score;
 	void ReadfromFile(const char* filename)
 	{
-		//std::vector<double> weights;
-
 		std::ifstream in(filename); 
 
-		double number; 
-		
-	    //while (in >> number) { 
-		//	weights.push_back(number);
-		//}
-
-		
-
-		//int i = 0;
 		for(auto &l : network.layers)
 		{
 			//skip input layer that has no weights
@@ -200,12 +189,10 @@ struct Genome
 			for(auto &n : l.neurons)
 			{
 				for(auto &w : n.weights)
-					in >> w;// = weights[i++];
+					in >> w;
 			}
 		}
 		in.close();
-
-
 	}
 
 	void SavetoFile(const char* filename)
