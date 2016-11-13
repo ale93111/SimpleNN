@@ -159,7 +159,7 @@ struct Generation
 		while(1)
 		{
 			numberofGenerations++;
-			if(!(numberofGenerations%10000)) std::cout << numberofGenerations << std::endl;
+			//if(!(numberofGenerations%10000)) std::cout << numberofGenerations << std::endl;
 			for(int i=0; i<population; i++)
 			{
 				for (int j=0; j<UpdateforGen; j++)
@@ -171,11 +171,13 @@ struct Generation
 				}
 
 				genomes[i].score = Trainees[i]->GetFitness();
+
+				Trainees[i]->Reset();
 			}
 
 			Sort();
 
-			if(genomes[0].score == goal) break;
+			if(genomes[0].score >= goal) break;
 
 			nextGeneration();
 		}
