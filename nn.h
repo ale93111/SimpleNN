@@ -90,7 +90,7 @@ struct Network
 		layers.push_back(lastLayer);
 	}
 	
-	std::vector<double> FeedForward(std::vector<double> Inputs)
+	std::vector<double> FeedForward(const std::vector<double> & Inputs)
 	{
 		for(int i=0; i<Inputs.size(); i++)
 			layers[0].neurons[i].value = Inputs[i];

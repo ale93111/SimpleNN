@@ -1,6 +1,7 @@
 #include <vector>
 #include <algorithm>    // std::sort
 #include <fstream>
+#include <memory>
 
 #include "nn.h"
 
@@ -9,6 +10,18 @@
 #define randomBehaviour  0.2
 #define mutationRate 	 0.1
 #define mutationRange 	 0.2
+#define UpdateforGen 	   4
+
+struct ToTrain
+{
+	virtual std::vector<double> ProvideNetworkWithInputs() const = 0;
+	virtual void Update(const std::vector<double>& networkOutputs) = 0;
+	virtual void Reset() = 0;
+	virtual double GetFitness() = 0;
+
+	ToTrain() = default;
+	virtual ~ToTrain() = default;
+};
 
 struct Genome
 {
@@ -62,11 +75,14 @@ struct Genome
 	Genome(Network n, double s) : network(n), score(s) {}
 };
 
-struct Generation
+struct Generation 
 {
 	std::vector<Genome> genomes;
+	std::vector<std::shared_ptr<ToTrain>> Trainees;
 	
-	
+	int numberofGenerations;
+
+
 	Genome breed(Genome g1, Genome g2)
 	{
 		Genome child = g1;
@@ -138,8 +154,36 @@ struct Generation
 		return avg/population;
 	}
 
+	void EvolveUntilFitnessEqual(double goal)
+	{
+		while(1)
+		{
+			numberofGenerations++;
+			if(!(numberofGenerations%10000)) std::cout << numberofGenerations << std::endl;
+			for(int i=0; i<population; i++)
+			{
+				for (int j=0; j<UpdateforGen; j++)
+				{
+					std::vector<double> inputs = Trainees[i]->ProvideNetworkWithInputs();
+					std::vector<double> output = genomes[i].network.FeedForward(inputs);
+
+					Trainees[i]->Update(output);
+				}
+
+				genomes[i].score = Trainees[i]->GetFitness();
+			}
+
+			Sort();
+
+			if(genomes[0].score == goal) break;
+
+			nextGeneration();
+		}
+		
+	}
+
 	Generation(){}
-	Generation(int nInputs, std::vector<int> nHiddens, int nOutputs)
+	Generation(int nInputs, std::vector<int> nHiddens, int nOutputs) : numberofGenerations(0)
 	{
 		for (int i=0; i < population; i++)
 		{
@@ -148,4 +192,5 @@ struct Generation
 			genomes.push_back(g);
 		}
 	}
+	//Generation(std::vector<std::shared_ptr<ToTrain>> P) : Trainees(P) {}
 };
