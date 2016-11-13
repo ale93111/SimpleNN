@@ -102,7 +102,7 @@ int main()
 
 	for(int i=0; i<output.size(); i++)
 	{
-		std::cout<< "the output of {" << dataset[i][0] << "," << dataset[i][1] << "} is " << output[i] << std::endl;		
+		std::cout<< "the output of {" << dataset[i][0] << "," << dataset[i][1] << "} is " << output[i] << " ( = " << int(output[i]>0.5) << " )" << std::endl;		
 	}
 
 	champ.SavetoFile("champ.nn");
