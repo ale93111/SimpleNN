@@ -132,8 +132,8 @@ double GameSession::GetFitness()
 
 std::vector<double> GameSession::ProvideNetworkWithInputs() const
 {
-	std::vector<double> inputs;
-
+	//std::vector<double> inputs;
+	/*
 	inputs.push_back((Ekans.y.front() - pidgey.y)/float(terminal.ymax));
 	inputs.push_back((Ekans.x.front() - pidgey.x)/float(terminal.xmax));
 
@@ -145,12 +145,15 @@ std::vector<double> GameSession::ProvideNetworkWithInputs() const
 			inputs.push_back( istherefood + isoutofbounds );
 		}
 
-	//std::vector<float> inputs = {(Ekans.y.front() - pidgey.y)/float(terminal.ymax),
-	//							 (Ekans.x.front() - pidgey.x)/float(terminal.xmax)};
-								/*(Ekans.direction.front() == UP?    1.0f:0.0f),
+	*/
+	std::vector<double> inputs = {(Ekans.y.front())/float(terminal.ymax),
+								 (Ekans.x.front())/float(terminal.xmax),
+								 (pidgey.y)/float(terminal.xmax),
+								 (pidgey.x)/float(terminal.xmax),
+								 (Ekans.direction.front() == UP?    1.0f:0.0f),
 								 (Ekans.direction.front() == DOWN?  1.0f:0.0f),
 								 (Ekans.direction.front() == LEFT?  1.0f:0.0f), 
-								 (Ekans.direction.front() == RIGHT? 1.0f:0.0f)};*/
+								 (Ekans.direction.front() == RIGHT? 1.0f:0.0f)};
 	return inputs;
 }
 

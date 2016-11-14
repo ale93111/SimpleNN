@@ -32,28 +32,18 @@ int main()
 
 	attron(COLOR_PAIR(1));
 	
-	Generation X(8,{6},4);
+	Network n(8,{6},4);
+	Genome champ(n,0);	
 
-	for(int i=0; i<population; i++)
-		X.Trainees.push_back(std::make_shared<GameSession>());
+	
 
+	champ.ReadfromFile("champ.nn");
+	//champ.network.print();
 
-	X.EvolveUntilFitnessEqual(2000.0);
+	GameSession GottaCatchEmAll(500);
+	GottaCatchEmAll.AI_play(champ);
 
 	endwin();
-	
-	std::cout << "Training complete!" << std::endl;
-	std::cout << "number of generations = " << X.numberofGenerations << std::endl;
-
-	//GameSession GottaCatchEmAll(500);
-	//GottaCatchEmAll.AI_play();
-
-	Genome champ = X.genomes[0];
-
-	champ.SavetoFile("champ.nn");
-	champ.network.print();
-
-	
 
 	return 0;
 }
