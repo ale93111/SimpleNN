@@ -32,13 +32,13 @@ int main()
 
 	attron(COLOR_PAIR(1));
 	
-	Generation X(8,{6},4);
+	Generation X(4,{8,8},4);
 
 	for(int i=0; i<population; i++)
 		X.Trainees.push_back(std::make_shared<GameSession>());
 
 
-	X.EvolveUntilFitnessEqual(2000.0);
+	X.EvolveUntilFitnessEqual(3000.0);
 
 	endwin();
 	
@@ -51,7 +51,7 @@ int main()
 	Genome champ = X.genomes[0];
 
 	champ.SavetoFile("champ.nn");
-	champ.network.print();
+	//champ.network.print();
 
 	
 

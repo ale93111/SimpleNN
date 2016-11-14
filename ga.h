@@ -10,7 +10,7 @@
 #define randomBehaviour  0.2
 #define mutationRate 	 0.1
 #define mutationRange 	 0.2
-#define UpdateforGen 	 100
+#define UpdateforGen 	 300
 
 struct ToTrain
 {
