@@ -13,10 +13,16 @@ double Sigmoid(double in)
 	return  1.0/(1.0 + exp(-in));	
 }
 
+double SigmoidGradient(double in)
+{
+	return  Sigmoid(in)*(1.0 - Sigmoid(in));
+}
+
 struct Neuron
 {
 	std::vector<double> weights;
 	double value;
+	double delta;
 	
 	void Populate(int nInputs)
 	{
@@ -49,6 +55,21 @@ struct Layer
 			neurons.push_back(newNeuron);
 		}
 	}
+	
+	void PopulateWithBias(int nNeurons, int nInputs)
+	{
+		for(int i=0; i < nNeurons; i++)
+		{
+			Neuron newNeuron(nInputs);
+
+			neurons.push_back(newNeuron);
+		}
+		
+		Neuron bias;
+		bias.value = 1.0;
+		neurons.push_back(bias);
+		
+	}
 				
 	Layer(){}
 	Layer(int nNeurons, int nInputs)
@@ -59,6 +80,11 @@ struct Layer
 	{
 		index = ind;
 		Populate(nNeurons,nInputs);
+	}
+	Layer(int ind, int nNeurons, int nInputs, bool overload)
+	{
+		index = ind;
+		PopulateWithBias(nNeurons,nInputs);
 	}
 };
 
@@ -71,17 +97,17 @@ struct Network
 		int previousNeurons = 0;
 		int ind = 0;
 		
-		Layer firstLayer(ind, nInputs, previousNeurons);
+		Layer firstLayer(ind, nInputs, previousNeurons,true);
 		layers.push_back(firstLayer);
 		
 		ind++;
-		previousNeurons = nInputs;
+		previousNeurons = nInputs+1;
 		
 		//for(int i=0; i<nHiddens.size(); i++)
 		for(auto nHidden : nHiddens)
 		{
-			Layer Hlayer(ind, nHidden, previousNeurons);
-			previousNeurons = nHidden;
+			Layer Hlayer(ind, nHidden, previousNeurons,true);
+			previousNeurons = nHidden+1;
 			layers.push_back(Hlayer);
 			ind++;
 		}
@@ -92,15 +118,15 @@ struct Network
 	
 	std::vector<double> FeedForward(const std::vector<double> & Inputs)
 	{
-		for(int i=0; i<Inputs.size(); i++)
+		for(int i=0; i<Inputs.size(); i++) //don't update bias
 			layers[0].neurons[i].value = Inputs[i];
 			
 		Layer previousLayer = layers[0];
 		
-		for(int i=1; i<layers.size(); i++)
+		for(int i=1; i<layers.size()-1; i++)
 		{
 			//for(auto currentNeuron : layers[i].neurons)
-			for(int j=0; j<layers[i].neurons.size(); j++)
+			for(int j=0; j<layers[i].neurons.size()-1; j++) //don't update bias
 			{
 				double sum = 0;
 				//for(auto previousNeuron : previousLayer.neurons)
@@ -114,13 +140,83 @@ struct Network
 			previousLayer = layers[i];
 		}
 		
-		std::vector<double> output;
+		//compute last layer separately because there is no bias
+		//Layer lastLayer = layers.back();
+		int n = layers.size()-1;
+		for(int j=0; j<layers[n].neurons.size(); j++) 
+		{
+			double sum = 0;
+			for(int k=0; k<previousLayer.neurons.size(); k++)
+			{
+				sum += previousLayer.neurons[k].value*layers[n].neurons[j].weights[k];
+			}
+			layers[n].neurons[j].value = Sigmoid(sum);
+		}
 		
-		Layer lastLayer = layers.back();
-		for(auto neuron : lastLayer.neurons)
+		std::vector<double> output;
+		for(auto neuron : layers[n].neurons)
 			output.push_back(neuron.value);
 			
 		return output;
+	}
+	
+	void BackProgagation(double LearningRate, const std::vector<double> & Truth)
+	{
+		//do output layer
+		int n = layers.size()-1;
+		for(int j=0; j<layers[n].neurons.size(); j++) 
+		{
+			layers[n].neurons[j].delta = layers[n].neurons[j].value*(1.0 - layers[n].neurons[j].value)*(Truth[j] - layers[n].neurons[j].value);
+		}
+		
+		//hidden layer from output layer (no bias)
+		for(int k=0; k<layers[n-1].neurons.size(); k++) //previous layer
+		{
+			double sum = 0;
+			for(int j=0; j<layers[n].neurons.size(); j++) 
+			{
+				sum += layers[n].neurons[j].weights[k]*layers[n].neurons[j].delta;
+			}
+				
+			layers[n-1].neurons[k].delta = layers[n-1].neurons[k].value*(1.0 - layers[n-1].neurons[k].value)*sum;
+		}
+
+		//hidden layers
+		for(int i=n-1; i>1; i--)
+		{
+			for(int k=0; k<layers[i-1].neurons.size(); k++) //previous layer
+			{
+				double sum = 0;
+				for(int j=0; j<layers[i].neurons.size()-1; j++) 
+				{
+					sum += layers[i].neurons[j].weights[k]*layers[i].neurons[j].delta;
+				}
+				
+				layers[i-1].neurons[k].delta = layers[i-1].neurons[k].value*(1.0 - layers[i-1].neurons[k].value)*sum;
+			}
+		}
+
+		//update output layer's weights
+		for(int j=0; j<layers[n].neurons.size(); j++) 
+		{
+			for(int k=0; k<layers[n-1].neurons.size(); k++) //previous layer
+			{
+				layers[n].neurons[j].weights[k] += LearningRate*layers[n].neurons[j].delta*layers[n-1].neurons[k].value;
+			}
+		}
+
+		//update all other weights
+		for(int i=n-1; i>0; i--)
+		{
+			for(int j=0; j<layers[i].neurons.size()-1; j++) //don't update weights
+			{
+				for(int k=0; k<layers[i-1].neurons.size(); k++) //previous layer
+				{
+					layers[i].neurons[j].weights[k] += LearningRate*layers[i].neurons[j].delta*layers[i-1].neurons[k].value;
+				}
+			}
+		}
+			
 	}
 	
 	void Randomize()
@@ -142,16 +238,17 @@ struct Network
 		for(auto l : layers)
 		{
 			//skip input layer that has no weights
-			if(l.index == 0) continue;
+			//if(l.index == 0) continue;
 			
-			std::cout << "hello world, i am layer number " << l.index << " and my neurons are = " << std::endl;
+			std::cout << "\t hello world, i am layer number " << l.index << " and my neurons are = " << std::endl;
 			int j=0;
 			for(auto n : l.neurons)
 			{
-				std::cout << "hello world, i am neuron number " << j << " and my weights are = " << std::endl;
+				std::cout << "\t \t hello world, i am neuron number " << j << " and my weights are = " << std::endl;
 				j++;
 				for(auto w : n.weights)
-					std::cout << w << std::endl;
+					std::cout << "\t \t " << w << std::endl;
+				std::cout << "\t \t and my value is  = " << n.value << std::endl;
 			}
 		}
 	}

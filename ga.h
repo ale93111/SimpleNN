@@ -5,12 +5,12 @@
 
 #include "nn.h"
 
-#define population 		 100
+#define population 		 50
 #define	elitism 		 0.2
 #define randomBehaviour  0.2
 #define mutationRate 	 0.1
 #define mutationRange 	 0.2
-#define UpdateforGen 	 300
+#define UpdateforGen 	 100
 
 struct ToTrain
 {
@@ -154,6 +154,48 @@ struct Generation
 		return avg/population;
 	}
 
+	double avgBestScore()
+	{
+		double avg = 0;
+		for(int i=0; i<genomes.size()/2; i++)
+			avg += genomes[i].score;
+		return 2*avg/population;
+	}
+	
+	std::vector<double> EvolveFor(int goal)
+	{
+		std::vector<double> avg;
+		
+		for(int k=0; k<goal; k++)
+		{
+			numberofGenerations++;
+			//if(!(numberofGenerations%10000)) std::cout << numberofGenerations << std::endl;
+			for(int i=0; i<population; i++)
+			{
+				for (int j=0; j<UpdateforGen; j++)
+				{
+					std::vector<double> inputs = Trainees[i]->ProvideNetworkWithInputs();
+					std::vector<double> output = genomes[i].network.FeedForward(inputs);
+
+					Trainees[i]->Update(output);
+				}
+
+				genomes[i].score = Trainees[i]->GetFitness();
+
+				Trainees[i]->Reset();
+			}
+
+			Sort();
+			
+			avg.push_back(avgBestScore());
+			//if(genomes[0].score >= goal) break;
+
+			if(k != (goal-1)) nextGeneration();
+		}
+		
+		return avg;		
+	}
+	
 	void EvolveUntilFitnessEqual(double goal)
 	{
 		while(1)
