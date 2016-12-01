@@ -138,40 +138,40 @@ int main()
 	
 	std::cout << "Testing the trained network..." << std::endl;
 	
-	std::vector<double> results;
+	std::vector<double> test_results;
 	for(int i=0; i<test_data.size(); i++)
 	{
 		auto res = nn.FeedForward(test_data[i]);
 		//select the neuron who fired the most
 		auto maxelement = std::max_element(std::begin(res), std::end(res));
 		auto c = std::distance(std::begin(res), maxelement);
-		results.push_back(c);
+		test_results.push_back(c);
 	}
 	
 	int n_correct = 0;
 	for(int i=0; i<test_data.size(); i++)
 	{
-		if( test_labels[i] == results[i]) 
+		if( test_labels[i] == test_results[i]) 
 			n_correct++;
 	}
 	
 	std::cout << "Final accuracy on the test set = " << double(n_correct)/test_data.size() << std::endl;
 	
 	//IMPORTANT: using test data size to use only the first 10000 digits of the train dataset, to speedup computation
-	results = {};
+	std::vector<double> train_results;
 	for(int i=0; i<train_size; i++)
 	{
 		auto res = nn.FeedForward(training_data[i]);
 		//select the neuron who fired the most
 		auto maxelement = std::max_element(std::begin(res), std::end(res));
 		auto c = std::distance(std::begin(res), maxelement);
-		results.push_back(c);
+		train_results.push_back(c);
 	}
 	
 	n_correct = 0;
 	for(int i=0; i<train_size; i++)
 	{
-		if( train_labels[i] == results[i]) 
+		if( train_labels[i] == train_results[i]) 
 			n_correct++;
 	}
 	
@@ -181,7 +181,7 @@ int main()
 	{
 		r = distribution(generator);
 		print_digit(r,test_data,test_labels);
-		std::cout << "predicted label = " << results[r] << std::endl;
+		std::cout << "predicted label = " << test_results[r] << std::endl;
 	}
 	
 	

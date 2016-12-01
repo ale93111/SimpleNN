@@ -10,7 +10,7 @@
 #define randomBehaviour  0.2
 #define mutationRate 	 0.1
 #define mutationRange 	 0.2
-#define UpdateforGen 	 100
+#define UpdateforGen 	 4
 
 struct ToTrain
 {
@@ -91,15 +91,15 @@ struct Generation
 			for(int j=0; j<g2.network.layers[i].neurons.size(); j++)
 				for(int k=0; k<g2.network.layers[i].neurons[j].weights.size(); k++)
 				{	
-					double r = uniform_distr(generator);
+					double r = distr(generator);
 					//std::cout << r << std::endl;
 					
 					if(r < 0.5)
 						child.network.layers[i].neurons[j].weights[k] = g2.network.layers[i].neurons[j].weights[k];
 					
-					r = uniform_distr(generator);
+					r = distr(generator);
 					if(r < mutationRate)
-						child.network.layers[i].neurons[j].weights[k] = uniform_distr(generator)*mutationRange*2.0 - mutationRange;
+						child.network.layers[i].neurons[j].weights[k] = distr(generator)*mutationRange*2.0 - mutationRange;
 					
 				}
 		

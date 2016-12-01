@@ -6,7 +6,8 @@
 //random generator
 std::random_device rd;
 std::mt19937 generator(rd());
-std::uniform_real_distribution<double> uniform_distr(-1, 1);
+//std::uniform_real_distribution<double> distr(-1, 1);
+std::normal_distribution<double> distr(0.0, 0.5);
 
 double Sigmoid(double in)
 {
@@ -28,7 +29,7 @@ struct Neuron
 	{
 		for(int i=0; i<nInputs; i++)
 		{
-			weights.push_back(uniform_distr(generator));
+			weights.push_back(distr(generator));
 		}
 	}
 	
@@ -228,7 +229,7 @@ struct Network
 
 			for(auto &n : l.neurons)
 				for(auto &w : n.weights)
-					w = uniform_distr(generator);
+					w = distr(generator);
 		}
 	}
 
