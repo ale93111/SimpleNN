@@ -10,21 +10,38 @@ struct Snake
 	std::vector<Direction> direction, olddirection;
 	int size;
 	int score;
+	int lifetime;
 	//bool cangrow;
 	
 	void display()
 	{
 		for(int i=0; i<size; i++) mvprintw(y[i],x[i],"@");
 	}
+
+	bool check_body(int pos_x, int pos_y) const
+	{
+		//check body
+		for(int i=1; i<size; i++)
+		{
+			if( pos_x == x.at(i) &&  pos_y == y.at(i) ) return true;
+		}
+
+		return false;
+	}
 	
 	bool check_coord(Board & terminal)
 	{
 		//check boundaries
-		if(x.front() < 0) {x.front() = 0; return true;}
-		else if(x.front() >= terminal.xmax) {x.front() = terminal.xmax - 1; return true;}
+		//if(x.front() < 0) {x.front() = 0; return true;}
+		//else if(x.front() >= terminal.xmax) {x.front() = terminal.xmax - 1; return true;}
 
-		if(y.front() < 0) {y.front() = 0; return true;}
-		else if(y.front() >= terminal.ymax) {y.front() = terminal.ymax - 1; return true;}
+		//if(y.front() < 0) {y.front() = 0; return true;}
+		//else if(y.front() >= terminal.ymax) {y.front() = terminal.ymax - 1; return true;}
+
+		if(x.front() < 0 || y.front() < 0 || x.front() >= terminal.xmax || y.front() >= terminal.ymax)
+		{
+			return true;
+		}
 		
 		//check body
 		for(int i=1; i<size; i++)
@@ -37,6 +54,9 @@ struct Snake
 	
 	void move(int c)
 	{
+		lifetime += 1;
+
+
 		olddirection.front() = direction.front();
 		
 		for(int i=size-1; i>0; i--)  direction.at(i) = direction.at(i-1);
@@ -105,8 +125,9 @@ struct Snake
 
 	void lunch()
 	{
-		score += 1000;
-		//if(cangrow) grow();
+		score += 1;
+		//if(cangrow) 
+		grow();
 	}
 	
 
@@ -121,6 +142,7 @@ struct Snake
 
 	void reset(int ystart, int xstart, Direction directioni)
 	{
+		lifetime = 0;
 		score = 0;
 		size = 1;
 
@@ -130,10 +152,12 @@ struct Snake
 		x.push_back(xstart);
 		direction.push_back(directioni);
 		olddirection.push_back(directioni);
+
+		grow();grow();
 	}
 	
 	Snake(){}
-	Snake(int yi, int xi, Direction directioni) : score(0), size(1) 
+	Snake(int yi, int xi, Direction directioni) : lifetime(0), score(0), size(1) 
 	{
 		y.push_back(yi);
 		x.push_back(xi);
@@ -142,6 +166,7 @@ struct Snake
 
 		//starting body
 		//if(cangrow) {grow();grow();grow();}
+		grow();grow();
 	}
 	
 	~Snake(){}
@@ -150,6 +175,7 @@ struct Snake
 	{
 		size = other.size;
 		score = other.score;
+		lifetime = other.lifetime;
 
 		allocator(size);
 		

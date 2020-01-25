@@ -32,7 +32,7 @@ int main()
 
 	attron(COLOR_PAIR(1));
 	
-	Network n(8,{6},4);
+	Network n(24,{16},4);
 	Genome champ(n,0);	
 
 	
@@ -40,7 +40,7 @@ int main()
 	champ.ReadfromFile("champ.nn");
 	//champ.network.print();
 
-	GameSession GottaCatchEmAll(500);
+	GameSession GottaCatchEmAll(100);
 	GottaCatchEmAll.AI_play(champ);
 
 	endwin();

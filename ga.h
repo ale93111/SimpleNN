@@ -3,19 +3,22 @@
 #include <fstream>
 #include <memory>
 
+#include <thread>         // std::this_thread::sleep_for
+#include <chrono>         // std::chrono::seconds
+
 #include "nn.h"
 
-#define population 		 50
-#define	elitism 		 0.2
-#define randomBehaviour  0.2
-#define mutationRate 	 0.1
-#define mutationRange 	 0.2
-#define UpdateforGen 	 4
+#define population 		 1000
+#define	elitism 		 0.1
+#define randomBehaviour  0.1
+#define mutationRate 	 0.15
+#define mutationRange 	 0.3
+//#define UpdateforGen 	 4
 
 struct ToTrain
 {
 	virtual std::vector<double> ProvideNetworkWithInputs() const = 0;
-	virtual void Update(const std::vector<double>& networkOutputs) = 0;
+	virtual bool Update(const std::vector<double>& networkOutputs) = 0;
 	virtual void Reset() = 0;
 	virtual double GetFitness() = 0;
 
@@ -99,7 +102,10 @@ struct Generation
 					
 					r = distr(generator);
 					if(r < mutationRate)
-						child.network.layers[i].neurons[j].weights[k] = distr(generator)*mutationRange*2.0 - mutationRange;
+						child.network.layers[i].neurons[j].weights[k] += distr(generator)*mutationRange;//*2.0 - mutationRange;
+
+					if(child.network.layers[i].neurons[j].weights[k] >  1) child.network.layers[i].neurons[j].weights[k] =  1;
+					if(child.network.layers[i].neurons[j].weights[k] < -1) child.network.layers[i].neurons[j].weights[k] = -1;
 					
 				}
 		
@@ -172,23 +178,42 @@ struct Generation
 			//if(!(numberofGenerations%10000)) std::cout << numberofGenerations << std::endl;
 			for(int i=0; i<population; i++)
 			{
-				for (int j=0; j<UpdateforGen; j++)
+				bool gameover = false;
+
+				int count = 0;
+
+				//std::cout << genomes[i].score << " ";
+
+				while(!(gameover))
 				{
 					std::vector<double> inputs = Trainees[i]->ProvideNetworkWithInputs();
 					std::vector<double> output = genomes[i].network.FeedForward(inputs);
 
-					Trainees[i]->Update(output);
+					gameover = Trainees[i]->Update(output);
+
+					count++;
 				}
 
 				genomes[i].score = Trainees[i]->GetFitness();
 
+				//std::cout << genomes[i].score << " ";
+
 				Trainees[i]->Reset();
+
+				//std::cout << count << " ";
 			}
 
 			Sort();
+
+			//for(auto &genome : genomes) std::cout << genome.score << " ";//std::endl;
+			//std::cout << std::endl;
 			
 			avg.push_back(avgBestScore());
 			//if(genomes[0].score >= goal) break;
+
+			std::cout << "# gen: " << numberofGenerations << " & avg score:  " << avgBestScore() << std::endl;
+
+			//std::this_thread::sleep_for (std::chrono::seconds(5));
 
 			if(k != (goal-1)) nextGeneration();
 		}
@@ -204,22 +229,37 @@ struct Generation
 			//if(!(numberofGenerations%10000)) std::cout << numberofGenerations << std::endl;
 			for(int i=0; i<population; i++)
 			{
-				for (int j=0; j<UpdateforGen; j++)
+				bool gameover = false;
+
+				int count = 0;
+
+				while(!(gameover))
 				{
 					std::vector<double> inputs = Trainees[i]->ProvideNetworkWithInputs();
 					std::vector<double> output = genomes[i].network.FeedForward(inputs);
 
-					Trainees[i]->Update(output);
+					gameover = Trainees[i]->Update(output);
+
+					count ++;
 				}
 
 				genomes[i].score = Trainees[i]->GetFitness();
 
 				Trainees[i]->Reset();
+
+				std::cout << count << " ";
 			}
 
 			Sort();
 
+			//for(auto &genome : genomes) std::cout << genome.score << " ";//std::endl;
+			//std::cout << std::endl;
+
+			std::this_thread::sleep_for (std::chrono::seconds(5));
+
 			if(genomes[0].score >= goal) break;
+
+			std::cout << "# gen: " << numberofGenerations << " & avg score:  " << avgBestScore() << std::endl;
 
 			nextGeneration();
 		}

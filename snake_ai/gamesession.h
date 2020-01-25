@@ -17,7 +17,7 @@ class GameSession : public ToTrain
 		Snake Ekans;
 		Food pidgey; //or rattata
 
-		double minDistanceFromFood;
+		//double minDistanceFromFood;
 		//snake starting point
 		int xstart, ystart;
 		int gamespeed; // bigger = slower (gamespeed->delay in millisecond)
@@ -26,7 +26,7 @@ class GameSession : public ToTrain
 		int command;
 
 		virtual void Reset() override;
-		virtual void Update(const std::vector<double>& networkOutputs) override;
+		virtual bool Update(const std::vector<double>& networkOutputs) override;
 		virtual double GetFitness() override;
 
 		virtual std::vector<double> ProvideNetworkWithInputs() const override;
@@ -34,24 +34,24 @@ class GameSession : public ToTrain
 		void play();
 		void AI_play(Genome & champ);
 
-		void check_DistanceFromFood();
+		void LookinDirection(int _direction_x, int _direction_y, double& in_food, double& in_body, double& in_wall) const;
 
 		GameSession();
 		GameSession(int gamespeedin);
 		GameSession( const GameSession& other ) = default;
 };
 
-void GameSession::check_DistanceFromFood()
-{
-	double DistanceFromFood = sqrt((Ekans.x.front() - pidgey.x)*(Ekans.x.front() - pidgey.x) + (Ekans.y.front() - pidgey.y)*(Ekans.y.front() - pidgey.y)) / sqrt( terminal.xmax*terminal.xmax + terminal.ymax*terminal.ymax);
+// void GameSession::check_DistanceFromFood()
+// {
+// 	double DistanceFromFood = sqrt((Ekans.x.front() - pidgey.x)*(Ekans.x.front() - pidgey.x) + (Ekans.y.front() - pidgey.y)*(Ekans.y.front() - pidgey.y)) / sqrt( terminal.xmax*terminal.xmax + terminal.ymax*terminal.ymax);
 	
-	if( DistanceFromFood < minDistanceFromFood) 
-		{
-			Ekans.score++;
+// 	if( DistanceFromFood < minDistanceFromFood) 
+// 		{
+// 			Ekans.score++;
 
-			minDistanceFromFood = DistanceFromFood;
-		}
-}
+// 			minDistanceFromFood = DistanceFromFood;
+// 		}
+// }
 
 GameSession::GameSession() : gamespeed(0), gameover(false), command(0) 
 {
@@ -68,7 +68,7 @@ GameSession::GameSession() : gamespeed(0), gameover(false), command(0)
 	Ekans  = Snake(ystart,xstart,RIGHT);
 	pidgey = Food(terminal);
 
-	minDistanceFromFood = 1.0;
+	//minDistanceFromFood = 1.0;
 }
 
 GameSession::GameSession(int gamespeedin) : gamespeed(gamespeedin), gameover(false), command(0) 
@@ -86,7 +86,7 @@ GameSession::GameSession(int gamespeedin) : gamespeed(gamespeedin), gameover(fal
 	Ekans  = Snake(ystart,xstart,RIGHT);
 	pidgey = Food(terminal);
 
-	minDistanceFromFood = 1.0;
+	//minDistanceFromFood = 1.0;
 }
 
 void GameSession::Reset()
@@ -96,14 +96,16 @@ void GameSession::Reset()
 	Ekans.reset(ystart, xstart, RIGHT);
 	pidgey = Food(terminal);
 
-	minDistanceFromFood = 1.0;
+	//minDistanceFromFood = 1.0;
 }
 
-void GameSession::Update(const std::vector<double>& networkOutputs)
+bool GameSession::Update(const std::vector<double>& networkOutputs)
 {    
 	command = KEY_RIGHT;
 
-		//direction is selected by choosing the outputneuron who fired the most
+	//std::this_thread::sleep_for (std::chrono::seconds(1));
+
+	//direction is selected by choosing the outputneuron who fired the most
 	auto maxelement = std::max_element(std::begin(networkOutputs), std::end(networkOutputs));
 	command = std::distance(std::begin(networkOutputs), maxelement);
 
@@ -118,42 +120,126 @@ void GameSession::Update(const std::vector<double>& networkOutputs)
 	gameover = Ekans.check_coord(terminal);	
 	pidgey.check(Ekans, terminal);
 
-	check_DistanceFromFood();
+	//check_DistanceFromFood();
 	//pidgey.display();
 	//refresh();
 		
-	if(gameover) Reset();
+	//if(gameover) Reset();
+
+	//avoid playing forever
+	if(Ekans.lifetime > (Ekans.size-2)*150) gameover = true;
+
+	return gameover;
 }
 
 double GameSession::GetFitness() 
 {
-	return Ekans.score;
+	//fitness is based on length and lifetime
+	double fitness = 0.0;
+	int length = Ekans.size;
+
+    if (length < 10) 
+    {
+      	fitness = Ekans.lifetime * Ekans.lifetime * pow(2, length);
+    } 
+    else 
+    {
+      	//grows slower after 10 to stop fitness from getting too big
+     	 //ensure length greater than 9
+      	fitness = Ekans.lifetime * Ekans.lifetime;
+      	fitness *= pow(2, 10);
+      	fitness *=(length - 9);
+	}
+	return fitness;
+}
+
+void GameSession::LookinDirection(int _direction_x, int _direction_y, double& in_food, double& in_body, double& in_wall) const
+{
+	//position where we are looking for food
+	int _position_x = Ekans.x.front();
+	int _position_y = Ekans.y.front();
+
+	bool foodIsFound = false; //true if the food has been located in the direction looked
+	bool tailIsFound = false;
+
+	double distance = 0;
+
+	_position_x += _direction_x;
+	_position_y += _direction_y;
+	
+	distance += 1;
+
+	in_food = 0.0;
+	in_body = 0.0;
+	in_wall = 0.0;
+
+	while(!( _position_x < 0 || _position_x >= terminal.xmax || _position_y < 0 || _position_y >= terminal.ymax ))
+	{
+
+		if (!foodIsFound && _position_x == pidgey.x && _position_y == pidgey.y) 
+		{
+			in_food = 1;
+			foodIsFound = true; // dont check if food is already found
+		}
+
+		//check for tail at the position
+		if (!tailIsFound && Ekans.check_body(_position_x, _position_y)) 
+		{
+			in_body = 1/distance;
+			tailIsFound = true; // dont check if tail is already found
+		}
+
+
+		_position_x += _direction_x;
+		_position_y += _direction_y;
+	
+		distance += 1;
+	}
+
+	in_wall = 1/distance;
 }
 
 std::vector<double> GameSession::ProvideNetworkWithInputs() const
 {
-	//std::vector<double> inputs;
-	/*
-	inputs.push_back((Ekans.y.front() - pidgey.y)/float(terminal.ymax));
-	inputs.push_back((Ekans.x.front() - pidgey.x)/float(terminal.xmax));
+	std::vector<double> inputs;
 
-	for(int i=Ekans.y.front() - 5; i<Ekans.y.front() + 5; i++) 
-		for(int j=Ekans.x.front() - 5; j<Ekans.x.front() + 5; j++) 
-		{
-			float istherefood = (i == pidgey.y && j == pidgey.x)? 1.0f:0.0f;
-			float isoutofbounds = (i>terminal.ymax || j>terminal.xmax)? -1.0f:0.0f;
-			inputs.push_back( istherefood + isoutofbounds );
-		}
+	double food_dist = 0.0;
+	double body_dist = 0.0;
+	double wall_dist = 0.0;
 
-	*/
-	std::vector<double> inputs = {(Ekans.y.front())/float(terminal.ymax),
-								 (Ekans.x.front())/float(terminal.xmax),
-								 (pidgey.y)/float(terminal.xmax),
-								 (pidgey.x)/float(terminal.xmax)};
-								 //(Ekans.direction.front() == UP?    1.0f:0.0f),
-								 //(Ekans.direction.front() == DOWN?  1.0f:0.0f),
-								 //(Ekans.direction.front() == LEFT?  1.0f:0.0f), 
-								 //(Ekans.direction.front() == RIGHT? 1.0f:0.0f)};
+	LookinDirection( 1, 1, food_dist, body_dist, wall_dist);
+	inputs.push_back(food_dist); 
+	inputs.push_back(body_dist); 
+	inputs.push_back(wall_dist);
+	LookinDirection( 1, 0, food_dist, body_dist, wall_dist);
+	inputs.push_back(food_dist); 
+	inputs.push_back(body_dist); 
+	inputs.push_back(wall_dist);
+	LookinDirection( 1,-1, food_dist, body_dist, wall_dist);
+	inputs.push_back(food_dist); 
+	inputs.push_back(body_dist); 
+	inputs.push_back(wall_dist);
+	LookinDirection(-1,-1, food_dist, body_dist, wall_dist);
+	inputs.push_back(food_dist); 
+	inputs.push_back(body_dist); 
+	inputs.push_back(wall_dist);
+	LookinDirection(-1, 0, food_dist, body_dist, wall_dist);
+	inputs.push_back(food_dist); 
+	inputs.push_back(body_dist); 
+	inputs.push_back(wall_dist);
+	LookinDirection(-1, 1, food_dist, body_dist, wall_dist);
+	inputs.push_back(food_dist); 
+	inputs.push_back(body_dist); 
+	inputs.push_back(wall_dist);
+	LookinDirection( 0, 1, food_dist, body_dist, wall_dist);
+	inputs.push_back(food_dist); 
+	inputs.push_back(body_dist); 
+	inputs.push_back(wall_dist);
+	LookinDirection( 0,-1, food_dist, body_dist, wall_dist);
+	inputs.push_back(food_dist); 
+	inputs.push_back(body_dist); 
+	inputs.push_back(wall_dist);
+
 	return inputs;
 }
 
@@ -223,6 +309,6 @@ void GameSession::AI_play(Genome & champ)
 		mvprintw(ystart-2,xstart-6, "GAME OVER");
 		mvprintw(ystart  ,xstart-6, "Score: %d ", Ekans.score);
 		refresh();
-		//sleep(2);
+		sleep(2);
 	}
 }

@@ -15,7 +15,7 @@ struct Food
 	
 	void display()
 	{
-		if(IsThereFood) mvprintw(y,x,"•");
+		if(IsThereFood) mvprintw(y,x,"+");
 	}
 	
 	void GenerateOn(Board & terminal)
@@ -34,6 +34,18 @@ struct Food
 		else return false;
 	}
 
+	bool IsFoodOn(Snake & Ekans)
+	{
+		bool food_on_snake = false;
+
+		for(int i=0; i<Ekans.size; i++)
+		{
+			if( Ekans.y.at(i) == y && Ekans.x.at(i) == x) food_on_snake = true;
+		}
+
+		return food_on_snake;
+	}
+
 	void check(Snake & Ekans, Board & terminal)
 	{
 		if(IsThereFood)
@@ -44,7 +56,12 @@ struct Food
 		}
 		else
 		{
-			GenerateOn(terminal);
+			do 
+			{ 
+				GenerateOn(terminal); 
+			}
+			while(IsFoodOn(Ekans));
+
 			IsThereFood = true;
 		}
 
